@@ -1,15 +1,37 @@
-const labels = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ'];
+const labels = [
+    'ก',
+    'ข',
+    'ค',
+    'ง',
+    'จ',
+    'ฉ'
+];
 
-const $ = s => document.querySelector(s);
-const C = window.EXAM_CONFIG;
-const S = supabase.createClient(
-    C.supabaseUrl,
-    C.supabaseAnonKey
-);
+
+const $ = s =>
+    document.querySelector(s);
+
+
+const C =
+    window.EXAM_CONFIG;
+
+
+const S =
+    supabase.createClient(
+        C.supabaseUrl,
+        C.supabaseAnonKey
+    );
+
 
 let token = null;
+
 let lastKey = '';
+
 let poller = null;
+
+let countdownTimer = null;
+
+let questionEndsAt = null;
 
 
 /* =========================
@@ -33,14 +55,24 @@ const esc = s =>
    SUPABASE RPC
 ========================= */
 
-async function rpc(n, a = {}) {
+async function rpc(
+    name,
+    args = {}
+) {
 
-    const { data, error } =
-        await S.rpc(n, a);
+    const {
+        data,
+        error
+    } = await S.rpc(
+        name,
+        args
+    );
+
 
     if (error) {
         throw error;
     }
+
 
     return data;
 }
@@ -55,27 +87,46 @@ async function info() {
     try {
 
         const d =
-            await rpc('student_session_info');
+            await rpc(
+                'student_session_info'
+            );
+
 
         if (!d) {
+
             throw Error(
                 'ยังไม่มีรอบติวที่เปิดอยู่'
             );
+
         }
 
-        $('#sessionInfo').innerHTML = `
-            <b>${esc(d.title)}</b><br>
-            ${d.questionCount} ข้อ •
-            สถานะ ${
-                d.status === 'waiting'
-                    ? 'รอเริ่ม'
-                    : 'กำลังติว'
-            }
-        `;
+
+        $('#sessionInfo')
+            .innerHTML = `
+
+                <b>
+                    ${esc(d.title)}
+                </b>
+
+                <br>
+
+                ${d.questionCount} ข้อ
+
+                •
+
+                สถานะ ${
+                    d.status === 'waiting'
+                        ? 'รอเริ่ม'
+                        : 'กำลังติว'
+                }
+
+            `;
+
 
     } catch (e) {
 
-        $('#sessionInfo').textContent =
+        $('#sessionInfo')
+            .textContent =
             e.message;
 
     }
@@ -84,67 +135,500 @@ async function info() {
 
 
 /* =========================
-   JOIN EXAM
+   TIME FORMAT
 ========================= */
 
-$('#joinForm').onsubmit = async e => {
+function formatTime(
+    totalSeconds
+) {
 
-    e.preventDefault();
-
-    $('#msg').textContent = '';
-
-    try {
-
-        const d = await rpc(
-            'student_join',
-            {
-                p_student_id:
-                    $('#studentId')
-                        .value
-                        .trim(),
-
-                p_student_name:
-                    $('#studentName')
-                        .value
-                        .trim()
-            }
+    const seconds =
+        Math.max(
+            0,
+            Math.floor(
+                Number(
+                    totalSeconds
+                ) || 0
+            )
         );
 
-        token = d.token;
-        lastKey = '';
 
-        localStorage.setItem(
-            'examAttemptToken',
-            token
+    const minutes =
+        Math.floor(
+            seconds / 60
         );
 
-        $('#joinView').hidden = true;
-        $('#playView').hidden = false;
 
-        await refresh();
+    const remainingSeconds =
+        seconds % 60;
 
-        if (poller) {
-            clearInterval(poller);
-        }
 
-        poller =
-            setInterval(
-                refresh,
-                2000
-            );
+    return (
+        String(minutes)
+            .padStart(2, '0')
+        +
+        ':'
+        +
+        String(remainingSeconds)
+            .padStart(2, '0')
+    );
 
-    } catch (e) {
-
-        $('#msg').textContent =
-            e.message;
-
-    }
-
-};
+}
 
 
 /* =========================
-   REFRESH STATE
+   END TIME FORMAT
+========================= */
+
+function formatEndTime(
+    date
+) {
+
+    if (
+        !(date instanceof Date) ||
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return '--:--:--';
+
+    }
+
+
+    return date
+        .toLocaleTimeString(
+            'th-TH',
+            {
+                hour:
+                    '2-digit',
+
+                minute:
+                    '2-digit',
+
+                second:
+                    '2-digit',
+
+                hour12:
+                    false
+            }
+        );
+
+}
+
+
+/* =========================
+   STOP COUNTDOWN
+========================= */
+
+function stopCountdown() {
+
+    if (countdownTimer) {
+
+        clearInterval(
+            countdownTimer
+        );
+
+
+        countdownTimer =
+            null;
+
+    }
+
+
+    questionEndsAt =
+        null;
+
+}
+
+
+/* =========================
+   SHOW EXPIRED
+========================= */
+
+function showTimeExpired(
+    endTimeText = ''
+) {
+
+    const stage =
+        $('#stage');
+
+
+    if (!stage) {
+        return;
+    }
+
+
+    stage.innerHTML = `
+
+        <div class="time-expired">
+
+            <div class="expired-icon">
+                ⏰
+            </div>
+
+
+            <h2>
+                หมดเวลาข้อนี้แล้ว
+            </h2>
+
+
+            ${
+                endTimeText
+                    ? `
+
+                        <div class="expired-time">
+
+                            หมดเวลา
+
+                            <b>
+                                ${esc(
+                                    endTimeText
+                                )}
+                            </b>
+
+                        </div>
+
+                    `
+                    : ''
+            }
+
+
+            <p>
+                ข้อนี้ได้
+                <b>0 คะแนน</b>
+            </p>
+
+
+            <p>
+                รอคุณครูส่งข้อถัดไป...
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================
+   START COUNTDOWN
+========================= */
+
+function startCountdown(
+    remainingSeconds
+) {
+
+    stopCountdown();
+
+
+    const seconds =
+        Math.max(
+            0,
+            Number(
+                remainingSeconds
+            ) || 0
+        );
+
+
+    /*
+     * คำนวณเวลาที่จะหมด
+     */
+
+    questionEndsAt =
+        new Date(
+            Date.now() +
+            seconds * 1000
+        );
+
+
+    const endTimeText =
+        formatEndTime(
+            questionEndsAt
+        );
+
+
+    /*
+     * ใส่เวลาที่จะหมด
+     */
+
+    const endElement =
+        $('#questionEndTime');
+
+
+    if (endElement) {
+
+        endElement.textContent =
+            endTimeText;
+
+    }
+
+
+    const updateCountdown =
+        () => {
+
+
+            const timerBox =
+                $('#questionTimer');
+
+
+            const timerText =
+                $('#questionTimerText');
+
+
+            if (
+                !timerBox ||
+                !timerText
+            ) {
+
+                stopCountdown();
+
+                return;
+
+            }
+
+
+            const remaining =
+                Math.max(
+                    0,
+                    Math.ceil(
+                        (
+                            questionEndsAt.getTime() -
+                            Date.now()
+                        )
+                        /
+                        1000
+                    )
+                );
+
+
+            timerText.textContent =
+                formatTime(
+                    remaining
+                );
+
+
+            /*
+             * เหลือ <= 30 วินาที
+             */
+
+            timerBox
+                .classList
+                .toggle(
+                    'warning',
+                    remaining > 10 &&
+                    remaining <= 30
+                );
+
+
+            /*
+             * เหลือ <= 10 วินาที
+             */
+
+            timerBox
+                .classList
+                .toggle(
+                    'danger',
+                    remaining <= 10
+                );
+
+
+            /*
+             * หมดเวลา
+             */
+
+            if (
+                remaining <= 0
+            ) {
+
+                const expiredAt =
+                    formatEndTime(
+                        questionEndsAt
+                    );
+
+
+                stopCountdown();
+
+
+                document
+                    .querySelectorAll(
+                        '.choice'
+                    )
+                    .forEach(
+                        button => {
+
+                            button.disabled =
+                                true;
+
+                        }
+                    );
+
+
+                showTimeExpired(
+                    expiredAt
+                );
+
+
+                /*
+                 * Sync state จริง
+                 * จาก Supabase
+                 */
+
+                setTimeout(
+                    () => {
+
+                        lastKey =
+                            '';
+
+                        refresh();
+
+                    },
+                    500
+                );
+
+            }
+
+        };
+
+
+    /*
+     * เรียกทันที
+     */
+
+    updateCountdown();
+
+
+    /*
+     * Update ทุก 1 วินาที
+     */
+
+    countdownTimer =
+        setInterval(
+            updateCountdown,
+            1000
+        );
+
+}
+
+
+/* =========================
+   JOIN
+========================= */
+
+$('#joinForm')
+    .onsubmit =
+    async e => {
+
+
+        e.preventDefault();
+
+
+        $('#msg')
+            .textContent =
+            '';
+
+
+        try {
+
+
+            const studentId =
+                $('#studentId')
+                    .value
+                    .trim();
+
+
+            const studentName =
+                $('#studentName')
+                    .value
+                    .trim();
+
+
+            if (
+                !studentId ||
+                !studentName
+            ) {
+
+                $('#msg')
+                    .textContent =
+                    'กรุณากรอกข้อมูลให้ครบ';
+
+                return;
+
+            }
+
+
+            const d =
+                await rpc(
+                    'student_join',
+                    {
+                        p_student_id:
+                            studentId,
+
+                        p_student_name:
+                            studentName
+                    }
+                );
+
+
+            token =
+                d.token;
+
+
+            lastKey =
+                '';
+
+
+            localStorage
+                .setItem(
+                    'examAttemptToken',
+                    token
+                );
+
+
+            $('#joinView')
+                .hidden =
+                true;
+
+
+            $('#playView')
+                .hidden =
+                false;
+
+
+            await refresh();
+
+
+            if (poller) {
+
+                clearInterval(
+                    poller
+                );
+
+            }
+
+
+            poller =
+                setInterval(
+                    refresh,
+                    2000
+                );
+
+
+        } catch (e) {
+
+
+            $('#msg')
+                .textContent =
+                e.message;
+
+
+        }
+
+    };
+
+
+/* =========================
+   REFRESH
 ========================= */
 
 async function refresh() {
@@ -153,36 +637,101 @@ async function refresh() {
         return;
     }
 
+
     try {
 
-        const d = await rpc(
-            'student_state',
-            {
-                p_token: token
-            }
-        );
+
+        const d =
+            await rpc(
+                'student_state',
+                {
+                    p_token:
+                        token
+                }
+            );
+
 
         const key =
-            JSON.stringify(d);
+            JSON.stringify(
+                d
+            );
 
-        $('#connection').textContent =
-            'LIVE';
 
-        if (key === lastKey) {
+        $('#connection')
+            .textContent =
+            '● LIVE';
+
+
+        /*
+         * State ไม่เปลี่ยน
+         * Countdown ของ JS
+         * ยังทำงานต่อเอง
+         */
+
+        if (
+            key === lastKey
+        ) {
+
             return;
+
         }
 
-        lastKey = key;
 
-        render(d);
+        lastKey =
+            key;
+
+
+        render(
+            d
+        );
+
 
     } catch (e) {
 
-        $('#connection').textContent =
+
+        const message =
+            String(
+                e?.message || ''
+            );
+
+
+        /*
+         * attempt ถูก Clear
+         */
+
+        if (
+            message.includes(
+                'ไม่พบ'
+            )
+            ||
+            message
+                .toLowerCase()
+                .includes(
+                    'not found'
+                )
+            ||
+            message
+                .toLowerCase()
+                .includes(
+                    'invalid token'
+                )
+        ) {
+
+            await resetStudent();
+
+            return;
+
+        }
+
+
+        $('#connection')
+            .textContent =
             'เชื่อมต่อใหม่...';
 
-        $('#msg').textContent =
-            e.message;
+
+        $('#msg')
+            .textContent =
+            message;
 
     }
 
@@ -193,52 +742,76 @@ async function refresh() {
    RENDER
 ========================= */
 
-function render(d) {
+function render(
+    d
+) {
 
     const stage =
         $('#stage');
 
 
-    /* -------------------------
+    stopCountdown();
+
+
+    /* =====================
        PROGRESS
-    ------------------------- */
+    ===================== */
 
-    if (d.total) {
+    if (
+        d.total
+    ) {
 
-        $('#progress').textContent =
-            d.status === 'finished'
+        $('#progress')
+            .textContent =
+
+            d.status ===
+            'finished'
+
                 ? `จบการติว ${d.total} ข้อ`
+
                 : `ข้อ ${Math.max(
                     0,
                     d.currentNumber
                 )} จาก ${d.total}`;
 
-        $('#progressBar').style.width =
+
+        $('#progressBar')
+            .style
+            .width =
+
             `${
-                Math.max(
-                    0,
-                    d.currentNumber
-                ) /
-                d.total *
+                (
+                    Math.max(
+                        0,
+                        d.currentNumber
+                    )
+                    /
+                    d.total
+                )
+                *
                 100
             }%`;
 
     }
 
 
-    /* -------------------------
+    /* =====================
        WAITING
-    ------------------------- */
+    ===================== */
 
     if (
-        d.status === 'waiting' ||
+        d.status ===
+        'waiting'
+        ||
         d.currentNumber === 0
     ) {
 
         stage.innerHTML = `
+
             <div class="waiting">
 
-                <span class="pulse"></span>
+                <span class="pulse">
+                </span>
 
                 <h2>
                     เข้าร่วมแล้ว
@@ -249,19 +822,26 @@ function render(d) {
                 </p>
 
             </div>
+
         `;
 
+
         return;
+
     }
 
 
-    /* -------------------------
+    /* =====================
        FINISHED
-    ------------------------- */
+    ===================== */
 
-    if (d.status === 'finished') {
+    if (
+        d.status ===
+        'finished'
+    ) {
 
         stage.innerHTML = `
+
             <div class="feedback ok">
 
                 <div class="feedback-icon">
@@ -272,20 +852,24 @@ function render(d) {
                     จบการติวแล้ว
                 </h2>
 
+
                 <div class="score-ring">
 
                     <b>
                         ${d.score}
                     </b>
 
-                    จาก ${d.total}
+                    จาก
+                    ${d.total}
 
                 </div>
+
 
                 <p>
                     ทำได้ดีมาก
                     ขอบคุณที่ตั้งใจเรียน!
                 </p>
+
 
                 <button
                     type="button"
@@ -296,83 +880,208 @@ function render(d) {
                 </button>
 
             </div>
+
         `;
 
+
         return;
+
     }
 
 
-    /* -------------------------
-       ANSWERED
-    ------------------------- */
+    /*
+     * ตรวจว่ามี Timer
+     */
 
-    if (d.answered) {
+    const hasTimer =
+        d.remainingSeconds !==
+            null
+        &&
+        d.remainingSeconds !==
+            undefined;
+
+
+    const remaining =
+        Number(
+            d.remainingSeconds
+        );
+
+
+    /*
+     * คำนวณเวลาที่หมด
+     */
+
+    let currentEndTime =
+        null;
+
+
+    if (
+        hasTimer &&
+        Number.isFinite(
+            remaining
+        )
+    ) {
+
+        currentEndTime =
+            new Date(
+                Date.now() +
+                Math.max(
+                    0,
+                    remaining
+                )
+                *
+                1000
+            );
+
+    }
+
+
+    const endTimeText =
+        currentEndTime
+            ?
+            formatEndTime(
+                currentEndTime
+            )
+            :
+            '';
+
+
+    /* =====================
+       ANSWERED
+    ===================== */
+
+    if (
+        d.answered
+    ) {
 
         const cls =
             d.correct
-                ? 'ok'
-                : 'no';
+                ?
+                'ok'
+                :
+                'no';
+
 
         const icon =
             d.correct
-                ? '🎉'
-                : '💪';
+                ?
+                '🎉'
+                :
+                '💪';
+
 
         const title =
             d.correct
-                ? 'ถูกต้อง! เก่งมาก'
-                : 'ยังไม่ถูก ลุยข้อต่อไปนะ';
+
+                ?
+                'ถูกต้อง! เก่งมาก'
+
+                :
+                'ยังไม่ถูก ลุยข้อต่อไปนะ';
 
 
         stage.innerHTML = `
+
             <div class="feedback ${cls}">
 
                 <div class="feedback-icon">
                     ${icon}
                 </div>
 
+
                 <h2>
                     ${title}
                 </h2>
 
+
                 ${
                     !d.correct
+
                         ? `
+
                             <div class="answer-box">
 
                                 คำตอบของคุณ:
 
                                 <b>
-                                    ${labels[d.choice]}
-                                    ${esc(d.choiceText)}
+
+                                    ${labels[
+                                        d.choice
+                                    ] || ''}
+
+                                    ${esc(
+                                        d.choiceText
+                                    )}
+
                                 </b>
 
                             </div>
+
                         `
-                        : ''
+
+                        :
+                        ''
                 }
+
 
                 <div class="answer-box">
 
                     เฉลย:
 
                     <b>
-                        ${labels[d.correctChoice]}
-                        ${esc(d.correctText)}
+
+                        ${
+                            labels[
+                                d.correctChoice
+                            ] || ''
+                        }
+
+                        ${esc(
+                            d.correctText
+                        )}
+
                     </b>
 
                 </div>
 
+
+                ${
+                    endTimeText
+                        ? `
+
+                            <div class="answer-time">
+
+                                ⏱ ข้อนี้หมดเวลา
+
+                                <b>
+                                    ${endTimeText}
+                                </b>
+
+                            </div>
+
+                        `
+                        :
+                        ''
+                }
+
+
                 <p>
-                    <span class="pulse"></span>
+
+                    <span class="pulse">
+                    </span>
+
                     รอคุณครูส่งข้อถัดไป...
+
                 </p>
 
             </div>
+
         `;
 
 
-        if (d.correct) {
+        if (
+            d.correct
+        ) {
 
             confetti(
                 stage.querySelector(
@@ -382,57 +1091,215 @@ function render(d) {
 
         }
 
+
         return;
+
     }
 
 
-    /* -------------------------
+    /* =====================
+       TIME EXPIRED
+    ===================== */
+
+    if (
+        d.timeExpired === true
+        ||
+        (
+            hasTimer
+            &&
+            Number.isFinite(
+                remaining
+            )
+            &&
+            remaining <= 0
+        )
+    ) {
+
+        showTimeExpired(
+            endTimeText
+        );
+
+        return;
+
+    }
+
+
+    /* =====================
        QUESTION
-    ------------------------- */
+    ===================== */
 
     stage.innerHTML = `
+
         <div class="question-card">
 
+
+            ${
+                hasTimer
+
+                    ? `
+
+                        <div
+                            id="questionTimer"
+                            class="question-timer"
+                        >
+
+                            <div class="timer-left">
+
+                                <span>
+                                    ⏱ เวลาที่เหลือ
+                                </span>
+
+                                <strong
+                                    id="questionTimerText"
+                                >
+                                    ${
+                                        formatTime(
+                                            remaining
+                                        )
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div class="timer-end">
+
+                                <span>
+                                    หมดเวลา
+                                </span>
+
+                                <b
+                                    id="questionEndTime"
+                                >
+                                    ${
+                                        endTimeText
+                                    }
+                                </b>
+
+                            </div>
+
+                        </div>
+
+                    `
+
+                    :
+                    ''
+            }
+
+
             <h2 class="question-text">
+
                 ${d.currentNumber}.
-                ${esc(d.text)}
+
+                ${esc(
+                    d.text
+                )}
+
             </h2>
 
-            <div id="choices"></div>
+
+            <div id="choices">
+            </div>
 
         </div>
+
     `;
 
 
-    d.choices.forEach(
-        (c, i) => {
+    /* =====================
+       CHOICE BUTTONS
+    ===================== */
 
-            const b =
-                document.createElement(
-                    'button'
-                );
+    if (
+        Array.isArray(
+            d.choices
+        )
+    ) {
 
-            b.className =
-                'choice';
+        d.choices
+            .forEach(
+                (
+                    choice,
+                    index
+                ) => {
 
-            b.innerHTML = `
-                <span class="label">
-                    ${labels[i]}
-                </span>
 
-                <span>
-                    ${esc(c)}
-                </span>
-            `;
+                    const button =
+                        document
+                            .createElement(
+                                'button'
+                            );
 
-            b.onclick =
-                () => answer(i);
 
-            $('#choices')
-                .appendChild(b);
+                    button.type =
+                        'button';
 
-        }
-    );
+
+                    button.className =
+                        'choice';
+
+
+                    button.innerHTML = `
+
+                        <span class="label">
+
+                            ${
+                                labels[
+                                    index
+                                ] || ''
+                            }
+
+                        </span>
+
+
+                        <span>
+
+                            ${esc(
+                                choice
+                            )}
+
+                        </span>
+
+                    `;
+
+
+                    button.onclick =
+                        () =>
+                            answer(
+                                index
+                            );
+
+
+                    $('#choices')
+                        .appendChild(
+                            button
+                        );
+
+                }
+            );
+
+    }
+
+
+    /* =====================
+       START COUNTDOWN
+    ===================== */
+
+    if (
+        hasTimer
+        &&
+        Number.isFinite(
+            remaining
+        )
+        &&
+        remaining > 0
+    ) {
+
+        startCountdown(
+            remaining
+        );
+
+    }
 
 }
 
@@ -441,43 +1308,101 @@ function render(d) {
    ANSWER
 ========================= */
 
-async function answer(i) {
+async function answer(
+    choiceIndex
+) {
+
+    stopCountdown();
+
 
     document
         .querySelectorAll(
             '.choice'
         )
         .forEach(
-            b =>
-                b.disabled = true
+            button => {
+
+                button.disabled =
+                    true;
+
+            }
         );
 
+
     try {
+
 
         await rpc(
             'student_answer',
             {
-                p_token: token,
-                p_choice: i
+                p_token:
+                    token,
+
+                p_choice:
+                    choiceIndex
             }
         );
 
-        lastKey = '';
+
+        lastKey =
+            '';
+
 
         await refresh();
 
+
     } catch (e) {
 
-        $('#msg').textContent =
-            e.message;
+
+        const message =
+            String(
+                e?.message || ''
+            );
+
+
+        $('#msg')
+            .textContent =
+            message;
+
+
+        /*
+         * หมดเวลา
+         */
+
+        if (
+            message.includes(
+                'หมดเวลา'
+            )
+        ) {
+
+            lastKey =
+                '';
+
+
+            await refresh();
+
+
+            return;
+
+        }
+
+
+        /*
+         * Error อื่น
+         * เปิดปุ่มอีกครั้ง
+         */
 
         document
             .querySelectorAll(
                 '.choice'
             )
             .forEach(
-                b =>
-                    b.disabled = false
+                button => {
+
+                    button.disabled =
+                        false;
+
+                }
             );
 
     }
@@ -491,65 +1416,142 @@ async function answer(i) {
 
 async function startAgain() {
 
-    /*
-     * หยุด polling รอบเก่า
-     */
+    stopCountdown();
 
-    if (poller) {
+
+    if (
+        poller
+    ) {
 
         clearInterval(
             poller
         );
 
-        poller = null;
+
+        poller =
+            null;
 
     }
 
 
-    /*
-     * ล้างข้อมูลรอบเก่า
-     */
-
-    token = null;
-    lastKey = '';
-
-    localStorage.removeItem(
-        'examAttemptToken'
-    );
+    token =
+        null;
 
 
-    /*
-     * กลับหน้า Login นักเรียน
-     */
-
-    $('#playView').hidden = true;
-    $('#joinView').hidden = false;
-
-    $('#msg').textContent = '';
+    lastKey =
+        '';
 
 
-    /*
-     * ล้างข้อมูลนักเรียน
-     */
-
-    $('#studentId').value = '';
-    $('#studentName').value = '';
+    localStorage
+        .removeItem(
+            'examAttemptToken'
+        );
 
 
-    /*
-     * Reset progress
-     */
+    $('#playView')
+        .hidden =
+        true;
 
-    $('#progress').textContent =
+
+    $('#joinView')
+        .hidden =
+        false;
+
+
+    $('#msg')
+        .textContent =
+        '';
+
+
+    $('#studentId')
+        .value =
+        '';
+
+
+    $('#studentName')
+        .value =
+        '';
+
+
+    $('#progress')
+        .textContent =
         'รอเริ่ม';
 
-    $('#progressBar').style.width =
+
+    $('#progressBar')
+        .style
+        .width =
         '0%';
 
 
-    /*
-     * โหลดข้อมูลรอบล่าสุด
-     */
+    await info();
+
+}
+
+
+/* =========================
+   RESET STUDENT
+========================= */
+
+async function resetStudent() {
+
+    stopCountdown();
+
+
+    if (
+        poller
+    ) {
+
+        clearInterval(
+            poller
+        );
+
+
+        poller =
+            null;
+
+    }
+
+
+    token =
+        null;
+
+
+    lastKey =
+        '';
+
+
+    localStorage
+        .removeItem(
+            'examAttemptToken'
+        );
+
+
+    $('#playView')
+        .hidden =
+        true;
+
+
+    $('#joinView')
+        .hidden =
+        false;
+
+
+    $('#msg')
+        .textContent =
+        '';
+
+
+    $('#progress')
+        .textContent =
+        'รอเริ่ม';
+
+
+    $('#progressBar')
+        .style
+        .width =
+        '0%';
+
 
     await info();
 
@@ -560,15 +1562,29 @@ async function startAgain() {
    CONFETTI
 ========================= */
 
-function confetti(box) {
+function confetti(
+    box
+) {
+
+    if (!box) {
+        return;
+    }
+
 
     const colors = [
+
         '#ffca3a',
+
         '#ff595e',
+
         '#8ac926',
+
         '#1982c4',
+
         '#6a4c93'
+
     ];
+
 
     for (
         let i = 0;
@@ -577,17 +1593,21 @@ function confetti(box) {
     ) {
 
         const x =
-            document.createElement(
-                'i'
-            );
+            document
+                .createElement(
+                    'i'
+                );
+
 
         x.className =
             'confetti';
+
 
         x.style.left =
             Math.random() *
             100 +
             '%';
+
 
         x.style.background =
             colors[
@@ -595,12 +1615,16 @@ function confetti(box) {
                 colors.length
             ];
 
+
         x.style.animationDelay =
             Math.random() *
-            .35 +
+            0.35 +
             's';
 
-        box.appendChild(x);
+
+        box.appendChild(
+            x
+        );
 
     }
 
@@ -615,39 +1639,54 @@ info();
 
 
 const saved =
-    localStorage.getItem(
-        'examAttemptToken'
-    );
+    localStorage
+        .getItem(
+            'examAttemptToken'
+        );
 
 
-if (saved) {
+if (
+    saved
+) {
 
-    token = saved;
+    token =
+        saved;
 
-    $('#joinView').hidden = true;
-    $('#playView').hidden = false;
+
+    $('#joinView')
+        .hidden =
+        true;
+
+
+    $('#playView')
+        .hidden =
+        false;
 
 
     refresh()
-        .then(() => {
+        .then(
+            () => {
 
-            if (token) {
+                if (
+                    token
+                ) {
 
-                poller =
-                    setInterval(
-                        refresh,
-                        2000
-                    );
+                    poller =
+                        setInterval(
+                            refresh,
+                            2000
+                        );
+
+                }
 
             }
+        )
+        .catch(
+            async () => {
 
-        })
-        .catch(() => {
+                await resetStudent();
 
-            localStorage.removeItem(
-                'examAttemptToken'
-            );
-
-        });
+            }
+        );
 
 }
