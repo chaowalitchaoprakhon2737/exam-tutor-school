@@ -1543,86 +1543,54 @@ th {
 #builder .builder-fixed-actions #saveExam{display:block!important;width:100%!important;min-height:48px!important;margin:0!important;border-radius:7px!important;font-weight:900!important}
 @media(max-width:700px){#builder:not([hidden]){padding-bottom:105px!important}#builder .builder-fixed-actions{margin:16px -18px -18px!important;padding:10px 16px calc(10px + env(safe-area-inset-bottom))!important}#builder .add-question-bottom{min-height:40px!important;padding:7px 14px!important;font-size:14px!important}#builder .builder-fixed-actions #saveExam{min-height:48px!important}}
 /* =========================================
-   FIX BUILDER BUTTONS AT BOTTOM
+   TEACHER BUILDER MOBILE FRIENDLY
 ========================================= */
 
 #builder:not([hidden]) {
     display: block !important;
-
     height: auto !important;
     max-height: none !important;
-
     overflow: visible !important;
 
-    padding-bottom: 110px;
+    /* กันคำถามท้ายสุดโดนปุ่ม Save บัง */
+    padding-bottom: 90px !important;
 }
 
 
-/* รายการข้อสอบไม่สร้าง scrollbar ของตัวเอง */
+/* QUESTION LIST */
 
 #questionEditor {
     height: auto !important;
     max-height: none !important;
-
     overflow: visible !important;
 
-    padding-bottom: 15px;
+    margin-bottom: 14px;
 }
 
 
-/* กล่อง 2 ปุ่ม */
+/* =========================================
+   ADD QUESTION
+   เลื่อนตามหน้าปกติ
+========================================= */
 
-.builder-actions-fixed {
-    position: sticky;
-
-    bottom: 0;
-    z-index: 100;
-
+.add-question-row {
     display: flex;
-    flex-direction: column;
+    justify-content: flex-end;
 
-    gap: 10px;
-
-    margin:
-        15px
-        -28px
-        -28px;
-
-    padding:
-        12px
-        28px
-        18px;
-
-    border-top:
-        1px solid #e1e8f2;
-
-    background:
-        rgba(255, 255, 255, 0.98);
-
-    box-shadow:
-        0 -8px 22px
-        rgba(31, 59, 96, 0.08);
-
-    backdrop-filter:
-        blur(8px);
+    margin: 12px 0 18px;
 }
 
-
-/* เพิ่มข้อ */
 
 .add-question-button {
-    width: 100%;
+    width: auto;
 
-    min-height: 46px;
+    padding: 10px 18px;
 
-    border:
-        1px solid #b9cceb;
-
+    border: 1px solid #b9c9df;
     border-radius: 8px;
 
     background: #ffffff;
-
-    color: #172d4b;
+    color: #17304f;
 
     font-weight: 850;
 }
@@ -1630,14 +1598,48 @@ th {
 
 .add-question-button:hover {
     border-color: #1473e6;
-
     background: #f3f8ff;
 }
 
 
-/* บันทึก */
+/* =========================================
+   SAVE
+   Fix แค่ปุ่มนี้
+========================================= */
 
-.builder-actions-fixed #saveExam {
+.save-exam-fixed {
+    position: fixed;
+
+    left: 50%;
+    bottom: 0;
+
+    z-index: 999;
+
+    width: min(
+        890px,
+        calc(100% - 36px)
+    );
+
+    transform: translateX(-50%);
+
+    padding: 10px 16px 14px;
+
+    border-top: 1px solid #dfe7f1;
+
+    background: rgba(
+        255,
+        255,
+        255,
+        0.98
+    );
+
+    box-shadow:
+        0 -8px 24px
+        rgba(31, 59, 96, 0.10);
+}
+
+
+.save-exam-fixed #saveExam {
     width: 100%;
 
     min-height: 48px;
@@ -1650,37 +1652,62 @@ th {
 }
 
 
-/* MOBILE */
+/* =========================================
+   MOBILE
+========================================= */
 
 @media (max-width: 700px) {
 
     #builder:not([hidden]) {
         padding-bottom:
             calc(
-                115px +
+                82px +
                 env(safe-area-inset-bottom)
-            );
+            ) !important;
     }
 
 
-    .builder-actions-fixed {
+    .add-question-row {
         margin:
             12px
-            -18px
-            -18px;
-
-        padding:
-            10px
-            16px
-            calc(
-                10px +
-                env(safe-area-inset-bottom)
-            );
+            0
+            16px;
     }
 
 
-    .add-question-button,
-    .builder-actions-fixed #saveExam {
+    .add-question-button {
+        min-height: 44px;
+
+        padding:
+            9px
+            16px;
+
+        font-size: 15px;
+    }
+
+
+    .save-exam-fixed {
+        left: 0;
+        bottom: 0;
+
+        width: 100%;
+
+        transform: none;
+
+        padding:
+            9px
+            16px
+            calc(
+                9px +
+                env(safe-area-inset-bottom)
+            );
+
+        border-left: 0;
+        border-right: 0;
+    }
+
+
+    .save-exam-fixed #saveExam {
         min-height: 48px;
 
         font-size: 15px;
