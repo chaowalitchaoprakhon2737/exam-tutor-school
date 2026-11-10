@@ -20,6 +20,19 @@
 html {
     background: var(--bg)
 }
+html,
+body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (max-width: 600px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
 
 body {
     margin: 0;
