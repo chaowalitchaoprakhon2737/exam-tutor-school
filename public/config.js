@@ -1,1 +1,1 @@
-window.EXAM_CONFIG={supabaseUrl:'https://rxepuzoyjlzmiawolpxi.supabase.co',supabaseAnonKey:'sb_publishable_75X27rhLGFb8MZJFzuUKCQ_yLv3lWro'};
+window.EXAM_CONFIG={supabaseUrl:'PASTE_SUPABASE_PROJECT_URL_HERE',supabaseAnonKey:'PASTE_SUPABASE_ANON_KEY_HERE'};
