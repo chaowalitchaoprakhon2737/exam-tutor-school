@@ -1,21 +1,51 @@
-*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:system-ui,"Noto Sans Thai",Tahoma,sans-serif}header{height:68px;background:#fff;border-bottom:1px solid #e4e9f1;display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,calc((100% - 1100px)/2))}.logo{text-decoration:none;color:#174ea6;font-size:1.25rem;font-weight:900}.role{background:#eaf2ff;color:#174ea6;padding:7px 12px;border-radius:999px;font-size:.85rem;font-weight:800}.teacher-role{background:#f1eaff;color:#6b3bbd}main{max-width:840px;margin:34px auto;padding:0 16px}.teacher-main{max-width:1100px}.landing{min-height:80vh;display:grid;place-items:center}.card{background:#fff;border:1px solid #e1e7f0;border-radius:20px;padding:28px;box-shadow:0 12px 35px #173b7a12}.student-card{max-width:720px;margin:auto}.login-card{max-width:500px;margin:auto}.center{text-align:center}.brand,.eyebrow{color:#1769e0;font-size:.78rem;font-weight:900;letter-spacing:.09em}.portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}.portal{padding:28px;text-align:left;text-decoration:none;color:inherit;border:1px solid #dce3ed;border-radius:16px;background:#f8fbff}.portal.teacher{background:#fbf9ff}.portal:hover{border-color:#1769e0;transform:translateY(-2px)}.portal b,.portal span{display:block}.portal b{font-size:1.3rem;margin-bottom:8px}.portal span,.muted{color:#667085}h1{margin:7px 0 12px}h2{margin:0 0 12px}label{display:block;font-weight:750;margin:15px 0}input{display:block;width:100%;padding:12px 13px;margin-top:6px;border:1px solid #bcc7d6;border-radius:10px;font:inherit}button{font:inherit;border:1px solid #c5cfdd;background:#fff;border-radius:10px;padding:10px 15px;cursor:pointer}.primary{background:#1769e0;color:#fff;border-color:#1769e0;font-weight:800}.wide{width:100%;padding:13px}.danger-btn{border-color:#efb5b5;color:#a62929;background:#fff5f5}.exam-info,.waiting{background:#f1f6ff;padding:16px;border-radius:14px;margin:18px 0}.quiz-head,.dashboard-head,.section-head,.qhead,.control-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.live{background:#e4f8ec;color:#137647;padding:7px 11px;border-radius:99px;font-weight:900}.progress-track{height:8px;background:#e6ecf3;border-radius:99px;overflow:hidden;margin-top:8px}.progress-track div{height:100%;background:#1769e0;transition:.3s}.question-card{margin-top:20px}.question-text{font-size:1.45rem;line-height:1.5}.choice{width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:15px;margin:10px 0;background:#fff;font-size:1.05rem}.choice .label{display:grid;place-items:center;min-width:38px;height:38px;border-radius:11px;background:#edf3fb;color:#174ea6;font-weight:900}.choice.correct{background:#eaf8f0;border-color:#16834a}.choice.wrong{background:#fff0f0;border-color:#c73535}.feedback{text-align:center;padding:24px;border-radius:18px;margin-top:20px;position:relative;overflow:hidden}.feedback.ok{background:linear-gradient(135deg,#eaf8f0,#d7f4e4);color:#146c3c}.feedback.no{background:linear-gradient(135deg,#fff5f1,#ffe6e0);color:#9d3028}.feedback-icon{font-size:4rem;animation:pop .55s ease}.feedback h2{font-size:1.7rem}.answer-box{background:#ffffffb8;padding:12px;border-radius:12px;margin:12px auto;max-width:430px}.waiting{text-align:center}.pulse{width:14px;height:14px;background:#1769e0;border-radius:50%;display:inline-block;animation:pulse 1.2s infinite}.confetti{position:absolute;width:10px;height:18px;top:-25px;animation:fall 1.4s linear forwards}.tabs{display:flex;gap:8px;margin:22px 0;flex-wrap:wrap}.tab.active{background:#172033;color:#fff}.panel{margin-top:14px}.form-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}.qedit{border:1px solid #dfe5ed;border-radius:14px;padding:18px;margin:14px 0}.choice-edit{display:grid;grid-template-columns:25px 34px 1fr 38px;gap:8px;align-items:center;margin:8px 0}.choice-edit input{margin:0}.choice-edit input[type=radio]{width:18px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat{background:#f7f9fc;border-radius:13px;padding:15px}.stat b{display:block;font-size:1.5rem}.actions{display:flex;gap:8px;flex-wrap:wrap}.message{color:#b42318;margin-top:12px}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:820px}th,td{text-align:left;padding:11px;border-bottom:1px solid #e5e9f0;vertical-align:top}.tag,.status{display:inline-block;border-radius:99px;padding:4px 8px;font-size:.82rem;margin:2px}.ok,.status.done{background:#dcf5e7;color:#146c3c}.no{background:#ffe1e1;color:#a62929}.status.doing{background:#fff4d6;color:#765400}@keyframes pop{0%{transform:scale(.2) rotate(-15deg)}70%{transform:scale(1.2)}100%{transform:scale(1)}}@keyframes fall{to{transform:translateY(360px) rotate(720deg);opacity:.4}}@keyframes pulse{50%{transform:scale(1.5);opacity:.35}}@media(max-width:700px){main{margin:18px auto}.card{padding:18px}.portal-grid,.form-grid,.stats{grid-template-columns:1fr}.dashboard-head,.section-head{align-items:flex-start;flex-direction:column}.choice-edit{grid-template-columns:24px 30px 1fr 34px}}
-#builder {
+/* =========================
+   TEACHER TAB VISIBILITY
+   ========================= */
+
+/* สำคัญ: Tab ที่ถูก hidden ต้องหายจริง */
+#control[hidden],
+#builder[hidden],
+#results[hidden] {
+  display: none !important;
+}
+
+
+/* =========================
+   QUESTION BUILDER
+   ========================= */
+
+#builder:not([hidden]) {
   height: calc(100vh - 190px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+
+/* ส่วนหัวไม่เลื่อน */
+#builder .form-grid,
+#builder .section-head {
+  flex-shrink: 0;
+}
+
+
+/* เลื่อนเฉพาะรายการข้อสอบ */
 #questionEditor {
   flex: 1;
   min-height: 0;
+
   overflow-y: auto;
   overflow-x: hidden;
+
   padding-right: 8px;
-  margin-bottom: 12px;
+  margin: 10px 0 12px;
 }
 
-/* scrollbar */
+
+/* =========================
+   QUESTION SCROLLBAR
+   ========================= */
+
 #questionEditor::-webkit-scrollbar {
   width: 8px;
 }
@@ -34,12 +64,77 @@
   background: #8fa3bb;
 }
 
-#saveExam {
+
+/* =========================
+   BUILDER ACTIONS
+   ========================= */
+
+.builder-actions {
   flex-shrink: 0;
-  margin-top: 6px;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+
+  background: #fff;
+
+  padding-top: 10px;
+
+  border-top: 1px solid #e5e9f0;
 }
 
-#builder .form-grid,
-#builder .section-head {
+
+/* เพิ่มข้อ */
+#addQuestion {
+  width: 100%;
+
+  background: #fff;
+  color: #172033;
+
+  border: 1px solid #c5cfdd;
+
+  padding: 11px 14px;
+
+  border-radius: 10px;
+
+  font-weight: 700;
+}
+
+
+/* บันทึก */
+#saveExam {
+  width: 100%;
+
+  background: #1769e0;
+  color: #fff;
+
+  border: 1px solid #1769e0;
+
+  padding: 13px;
+
+  border-radius: 10px;
+
+  font-weight: 800;
+
   flex-shrink: 0;
+}
+
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 700px) {
+
+  #builder:not([hidden]) {
+    height: calc(100dvh - 165px);
+  }
+
+  #questionEditor {
+    padding-right: 4px;
+  }
+
+  .builder-actions {
+    padding-bottom: 4px;
+  }
 }
