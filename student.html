@@ -4,19 +4,13 @@
 <head>
     <meta charset="utf-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width,initial-scale=1"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <title>
         นักเรียน | Exam Tutor
     </title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <link rel="stylesheet" href="style.css">
 </head>
 
 
@@ -24,10 +18,7 @@
 
     <header class="site-header compact">
 
-        <a
-            class="site-brand"
-            href="index.html"
-        >
+        <a class="site-brand" href="index.html">
             <span class="brand-book">
                 ▤
             </span>
@@ -39,10 +30,7 @@
         </a>
 
 
-        <a
-            class="back-link"
-            href="index.html"
-        >
+        <a class="back-link" href="index.html">
             ← กลับหน้าแรก
         </a>
 
@@ -58,10 +46,7 @@
                  JOIN
             ========================== -->
 
-            <div
-                id="joinView"
-                class="student-join"
-            >
+            <div id="joinView" class="student-join">
 
                 <div class="login-symbol">
                     🎓
@@ -81,10 +66,7 @@
                 </p>
 
 
-                <div
-                    id="sessionInfo"
-                    class="exam-info"
-                >
+                <div id="sessionInfo" class="exam-info">
                     กำลังตรวจสอบรอบการติว...
                 </div>
 
@@ -94,31 +76,18 @@
                     <label>
                         เลขประจำตัวนักเรียน
 
-                        <input
-                            id="studentId"
-                            maxlength="50"
-                            required
-                            placeholder="เช่น 65001234"
-                        >
+                        <input id="studentId" maxlength="50" required placeholder="เช่น 65001234">
                     </label>
 
 
                     <label>
                         ชื่อ - นามสกุล
 
-                        <input
-                            id="studentName"
-                            maxlength="120"
-                            required
-                            placeholder="เช่น สมชาย ใจดี"
-                        >
+                        <input id="studentName" maxlength="120" required placeholder="เช่น สมชาย ใจดี">
                     </label>
 
 
-                    <button
-                        class="primary wide"
-                        type="submit"
-                    >
+                    <button class="primary wide" type="submit">
                         เริ่มทำข้อสอบ →
                     </button>
 
@@ -143,19 +112,13 @@
                  PLAY
             ========================== -->
 
-            <div
-                id="playView"
-                hidden
-            >
+            <div id="playView" hidden>
 
                 <div class="quiz-head">
 
                     <div class="quiz-progress">
 
-                        <span
-                            id="progress"
-                            class="eyebrow"
-                        >
+                        <span id="progress" class="eyebrow">
                             รอเริ่ม
                         </span>
 
@@ -170,30 +133,20 @@
                     </div>
 
 
-                    <span
-                        id="connection"
-                        class="live"
-                    >
+                    <span id="connection" class="live">
                         ● LIVE
                     </span>
 
                 </div>
 
 
-                <div
-                    id="stage"
-                    aria-live="polite"
-                >
+                <div id="stage" aria-live="polite">
                 </div>
 
             </div>
 
 
-            <div
-                id="msg"
-                class="message"
-                aria-live="polite"
-            >
+            <div id="msg" class="message" aria-live="polite">
             </div>
 
         </section>
@@ -201,9 +154,7 @@
     </main>
 
 
-    <script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script src="config.js"></script>
 
