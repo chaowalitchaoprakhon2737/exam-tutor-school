@@ -1474,3 +1474,62 @@ th {
         font-size: 24px;
     }
 }
+.tag.timeout {
+    background: #ffe9e9;
+    color: #bd2c2c;
+    border: 1px solid #ffcaca;
+}
+
+.tag.pending {
+    background: #fff4d6;
+    color: #7a5a00;
+    border: 1px solid #f4dfa4;
+}
+
+.tag.not-released {
+    background: #eef2f7;
+    color: #77869a;
+    border: 1px solid #dfe5ec;
+}
+
+.score-summary {
+    margin: 18px auto;
+    text-align: center;
+}
+
+.score-number {
+    color: #07985d;
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+.score-detail {
+    margin-top: 7px;
+    color: #07985d;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.score-total {
+    margin-top: 7px;
+    color: #587087;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.score-percent {
+    display: inline-block;
+
+    margin-bottom: 15px;
+    padding: 7px 15px;
+
+    border-radius: 999px;
+
+    background: #ffffff;
+
+    color: #087549;
+
+    font-size: 14px;
+    font-weight: 800;
+}
