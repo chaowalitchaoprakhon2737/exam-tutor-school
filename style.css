@@ -1533,3 +1533,157 @@ th {
     font-size: 14px;
     font-weight: 800;
 }
+
+/* ===== TEACHER BUILDER FINAL: add button above sticky save ===== */
+#builder:not([hidden]){display:block!important;height:auto!important;overflow:visible!important;padding-bottom:92px!important}
+#builder .builder-fixed-actions{position:sticky!important;bottom:0!important;z-index:60!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;grid-template-columns:none!important;margin:20px -28px -28px!important;padding:12px 28px 18px!important;border-top:1px solid #dfe7f2!important;background:rgba(255,255,255,.98)!important;box-shadow:0 -10px 26px rgba(30,60,100,.08)!important;backdrop-filter:blur(10px)}
+#builder .add-question-row{display:flex;justify-content:flex-end;width:100%}
+#builder .add-question-bottom{width:auto!important;min-height:42px!important;padding:8px 18px!important;border:1px solid #b9cdec!important;border-radius:8px!important;background:#fff!important;color:#173b68!important;font-weight:850!important}
+#builder .add-question-bottom:hover{border-color:#1473e6!important;background:#f3f8ff!important}
+#builder .builder-fixed-actions #saveExam{display:block!important;width:100%!important;min-height:48px!important;margin:0!important;border-radius:7px!important;font-weight:900!important}
+@media(max-width:700px){#builder:not([hidden]){padding-bottom:105px!important}#builder .builder-fixed-actions{margin:16px -18px -18px!important;padding:10px 16px calc(10px + env(safe-area-inset-bottom))!important}#builder .add-question-bottom{min-height:40px!important;padding:7px 14px!important;font-size:14px!important}#builder .builder-fixed-actions #saveExam{min-height:48px!important}}
+/* =========================================
+   FIX BUILDER BUTTONS AT BOTTOM
+========================================= */
+
+#builder:not([hidden]) {
+    display: block !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    padding-bottom: 110px;
+}
+
+
+/* รายการข้อสอบไม่สร้าง scrollbar ของตัวเอง */
+
+#questionEditor {
+    height: auto !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    padding-bottom: 15px;
+}
+
+
+/* กล่อง 2 ปุ่ม */
+
+.builder-actions-fixed {
+    position: sticky;
+
+    bottom: 0;
+    z-index: 100;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 10px;
+
+    margin:
+        15px
+        -28px
+        -28px;
+
+    padding:
+        12px
+        28px
+        18px;
+
+    border-top:
+        1px solid #e1e8f2;
+
+    background:
+        rgba(255, 255, 255, 0.98);
+
+    box-shadow:
+        0 -8px 22px
+        rgba(31, 59, 96, 0.08);
+
+    backdrop-filter:
+        blur(8px);
+}
+
+
+/* เพิ่มข้อ */
+
+.add-question-button {
+    width: 100%;
+
+    min-height: 46px;
+
+    border:
+        1px solid #b9cceb;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #172d4b;
+
+    font-weight: 850;
+}
+
+
+.add-question-button:hover {
+    border-color: #1473e6;
+
+    background: #f3f8ff;
+}
+
+
+/* บันทึก */
+
+.builder-actions-fixed #saveExam {
+    width: 100%;
+
+    min-height: 48px;
+
+    margin: 0;
+
+    border-radius: 8px;
+
+    font-weight: 900;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+    #builder:not([hidden]) {
+        padding-bottom:
+            calc(
+                115px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+
+    .builder-actions-fixed {
+        margin:
+            12px
+            -18px
+            -18px;
+
+        padding:
+            10px
+            16px
+            calc(
+                10px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+
+    .add-question-button,
+    .builder-actions-fixed #saveExam {
+        min-height: 48px;
+
+        font-size: 15px;
+    }
+
+}

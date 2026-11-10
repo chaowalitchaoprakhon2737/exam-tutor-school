@@ -36,25 +36,30 @@
                 <div id="controlBox"></div>
             </section>
             <section id="builder" class="card panel" hidden>
-                <div class="form-grid"><label>ชื่อชุดข้อสอบ<input id="title"
-                            value="ชุดติวข้อสอบ"></label><label>
-    เวลาต่อข้อ (นาที)
-    <input
-        id="duration"
-        type="number"
-        min="1"
-        max="60"
-        value="2"
-    >
-</label></div>
+                <div class="form-grid"><label>ชื่อชุดข้อสอบ<input id="title" value="ชุดติวข้อสอบ"></label><label>
+                        เวลาต่อข้อ (นาที)
+                        <input id="duration" type="number" min="1" max="60" value="2">
+                    </label></div>
                 <div class="section-head">
                     <div>
                         <h2>คำถามและเฉลย</h2>
                         <p class="muted">สร้างครั้งเดียว แล้วนำไปเริ่มรอบติวใหม่ได้หลายครั้ง</p>
-                    </div><button id="addQuestion" type="button">＋ เพิ่มข้อ</button>
+                    </div>
                 </div>
-                <div id="questionEditor"></div><button id="saveExam" class="primary wide"
-                    type="button">บันทึกชุดข้อสอบ</button>
+
+                <div id="questionEditor"></div>
+
+                <div class="builder-actions-fixed">
+
+                    <button id="addQuestion" type="button" class="add-question-button">
+                        ＋ เพิ่มข้อ
+                    </button>
+
+                    <button id="saveExam" class="primary wide" type="button">
+                        บันทึกชุดข้อสอบ
+                    </button>
+
+                </div>
             </section>
             <section id="results" class="card panel" hidden>
                 <div class="section-head">
