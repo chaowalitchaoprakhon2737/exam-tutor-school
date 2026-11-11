@@ -1,14 +1,20 @@
 const labels = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ'];
 
 const $ = s => document.querySelector(s);
+
 const C = window.EXAM_CONFIG;
+
 const S = supabase.createClient(
     C.supabaseUrl,
     C.supabaseAnonKey
 );
 
 let questions = [];
+
 let timer = null;
+
+let teacherCountdownTimer = null;
+let teacherQuestionEndsAt = null;
 
 
 /* =========================================
@@ -32,10 +38,18 @@ const esc = s =>
    SUPABASE RPC
 ========================================= */
 
-async function rpc(name, args = {}) {
+async function rpc(
+    name,
+    args = {}
+) {
 
-    const { data, error } =
-        await S.rpc(name, args);
+    const {
+        data,
+        error
+    } = await S.rpc(
+        name,
+        args
+    );
 
     if (error) {
         throw error;
@@ -46,48 +60,272 @@ async function rpc(name, args = {}) {
 
 
 /* =========================================
+   TEACHER TIMER
+========================================= */
+
+function formatTeacherTime(
+    totalSeconds
+) {
+
+    const seconds =
+        Math.max(
+            0,
+            Math.floor(
+                Number(totalSeconds) || 0
+            )
+        );
+
+    const minutes =
+        Math.floor(
+            seconds / 60
+        );
+
+    const secs =
+        seconds % 60;
+
+    return (
+        String(minutes)
+            .padStart(2, '0')
+        +
+        ':'
+        +
+        String(secs)
+            .padStart(2, '0')
+    );
+}
+
+
+function formatTeacherEndTime(
+    date
+) {
+
+    if (
+        !(date instanceof Date) ||
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return '--:--:--';
+    }
+
+    return date.toLocaleTimeString(
+        'th-TH',
+        {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }
+    );
+}
+
+
+function stopTeacherCountdown() {
+
+    if (
+        teacherCountdownTimer
+    ) {
+
+        clearInterval(
+            teacherCountdownTimer
+        );
+
+        teacherCountdownTimer =
+            null;
+    }
+
+    teacherQuestionEndsAt =
+        null;
+}
+
+
+function startTeacherCountdown(
+    remainingSeconds
+) {
+
+    stopTeacherCountdown();
+
+
+    const seconds =
+        Math.max(
+            0,
+            Number(
+                remainingSeconds
+            ) || 0
+        );
+
+
+    teacherQuestionEndsAt =
+        new Date(
+            Date.now()
+            +
+            seconds * 1000
+        );
+
+
+    function updateTimer() {
+
+        const timerBox =
+            $('#teacherQuestionTimer');
+
+        const timerText =
+            $('#teacherTimerText');
+
+        const endText =
+            $('#teacherEndTime');
+
+
+        if (
+            !timerBox ||
+            !timerText
+        ) {
+
+            stopTeacherCountdown();
+
+            return;
+        }
+
+
+        const remaining =
+            Math.max(
+                0,
+                Math.ceil(
+                    (
+                        teacherQuestionEndsAt.getTime()
+                        -
+                        Date.now()
+                    )
+                    /
+                    1000
+                )
+            );
+
+
+        timerText.textContent =
+            formatTeacherTime(
+                remaining
+            );
+
+
+        if (endText) {
+
+            endText.textContent =
+                formatTeacherEndTime(
+                    teacherQuestionEndsAt
+                );
+        }
+
+
+        timerBox.classList.toggle(
+            'warning',
+            remaining > 10 &&
+            remaining <= 30
+        );
+
+
+        timerBox.classList.toggle(
+            'danger',
+            remaining <= 10
+        );
+
+
+        if (
+            remaining <= 0
+        ) {
+
+            timerText.textContent =
+                '00:00';
+
+            timerBox.classList.add(
+                'danger'
+            );
+
+            stopTeacherCountdown();
+        }
+    }
+
+
+    updateTimer();
+
+
+    teacherCountdownTimer =
+        setInterval(
+            updateTimer,
+            1000
+        );
+}
+
+
+/* =========================================
    LOGIN
 ========================================= */
 
-$('#loginForm').onsubmit = async e => {
+$('#loginForm').onsubmit =
+    async e => {
 
-    e.preventDefault();
-
-    $('#loginMsg').textContent = '';
-
-    const { error } =
-        await S.auth.signInWithPassword({
-            email: $('#email').value,
-            password: $('#password').value
-        });
-
-    if (error) {
+        e.preventDefault();
 
         $('#loginMsg').textContent =
-            error.message;
+            '';
 
-        return;
-    }
 
-    await openApp();
-};
+        const {
+            error
+        } =
+            await S.auth
+                .signInWithPassword({
+                    email:
+                        $('#email').value,
+
+                    password:
+                        $('#password').value
+                });
+
+
+        if (
+            error
+        ) {
+
+            $('#loginMsg').textContent =
+                error.message;
+
+            return;
+        }
+
+
+        await openApp();
+    };
 
 
 /* =========================================
    LOGOUT
 ========================================= */
 
-$('#logout').onclick = async () => {
+$('#logout').onclick =
+    async () => {
 
-    if (timer) {
-        clearInterval(timer);
-        timer = null;
-    }
+        if (
+            timer
+        ) {
 
-    await S.auth.signOut();
+            clearInterval(
+                timer
+            );
 
-    location.reload();
-};
+            timer =
+                null;
+        }
+
+
+        stopTeacherCountdown();
+
+
+        await S.auth.signOut();
+
+
+        location.reload();
+    };
 
 
 /* =========================================
@@ -96,29 +334,47 @@ $('#logout').onclick = async () => {
 
 async function openApp() {
 
-    $('#loginView').hidden = true;
-    $('#appView').hidden = false;
+    $('#loginView').hidden =
+        true;
+
+    $('#appView').hidden =
+        false;
+
 
     await loadExam();
+
     await loadControl();
+
     await loadResults();
 
-    if (timer) {
-        clearInterval(timer);
+
+    if (
+        timer
+    ) {
+
+        clearInterval(
+            timer
+        );
     }
 
-    timer = setInterval(
-        async () => {
 
-            await loadControl();
+    timer =
+        setInterval(
+            async () => {
 
-            if (!$('#results').hidden) {
-                await loadResults();
-            }
+                await loadControl();
 
-        },
-        2500
-    );
+
+                if (
+                    !$('#results').hidden
+                ) {
+
+                    await loadResults();
+                }
+
+            },
+            2500
+        );
 }
 
 
@@ -135,16 +391,23 @@ async function loadExam() {
                 'teacher_exam_get'
             );
 
-        if (exam) {
+
+        if (
+            exam
+        ) {
 
             $('#title').value =
                 exam.title;
 
+
             $('#duration').value =
                 exam.durationMinutes;
 
+
             questions =
-                Array.isArray(exam.questions)
+                Array.isArray(
+                    exam.questions
+                )
                     ? exam.questions
                     : [];
 
@@ -152,7 +415,8 @@ async function loadExam() {
 
             questions = [
                 {
-                    text: 'คำถามข้อ 1',
+                    text:
+                        'คำถามข้อ 1',
 
                     choices: [
                         'ตัวเลือก ก',
@@ -161,16 +425,23 @@ async function loadExam() {
                         'ตัวเลือก ง'
                     ],
 
-                    correct: 0
+                    correct:
+                        0
                 }
             ];
         }
 
+
         renderEditor();
 
-    } catch (error) {
 
-        msg(error.message);
+    } catch (
+        error
+    ) {
+
+        msg(
+            error.message
+        );
     }
 }
 
@@ -184,27 +455,37 @@ function renderEditor() {
     const container =
         $('#questionEditor');
 
-    container.innerHTML = '';
+
+    container.innerHTML =
+        '';
 
 
     questions.forEach(
-        (question, questionIndex) => {
+        (
+            question,
+            questionIndex
+        ) => {
+
 
             const article =
-                document.createElement(
-                    'article'
-                );
+                document
+                    .createElement(
+                        'article'
+                    );
+
 
             article.className =
                 'qedit';
 
 
             article.innerHTML = `
+
                 <div class="qhead">
 
                     <b>
                         ข้อ ${questionIndex + 1}
                     </b>
+
 
                     <button
                         type="button"
@@ -215,21 +496,30 @@ function renderEditor() {
 
                 </div>
 
+
                 <label>
 
                     คำถาม
 
                     <input
                         data-text
-                        value="${esc(question.text)}"
+                        value="${esc(
+                            question.text
+                        )}"
                     >
 
                 </label>
 
+
                 ${
-                    question.choices
+                    question
+                        .choices
                         .map(
-                            (choice, index) => `
+                            (
+                                choice,
+                                index
+                            ) => `
+
                                 <div class="choice-edit">
 
                                     <input
@@ -237,20 +527,31 @@ function renderEditor() {
                                         name="r${questionIndex}"
                                         value="${index}"
                                         ${
-                                            question.correct === index
+                                            question.correct ===
+                                            index
+
                                                 ? 'checked'
                                                 : ''
                                         }
                                     >
 
+
                                     <b>
-                                        ${labels[index] || index + 1}
+                                        ${
+                                            labels[index]
+                                            ||
+                                            index + 1
+                                        }
                                     </b>
+
 
                                     <input
                                         data-c="${index}"
-                                        value="${esc(choice)}"
+                                        value="${esc(
+                                            choice
+                                        )}"
                                     >
+
 
                                     <button
                                         type="button"
@@ -260,10 +561,12 @@ function renderEditor() {
                                     </button>
 
                                 </div>
+
                             `
                         )
                         .join('')
                 }
+
 
                 <button
                     type="button"
@@ -271,12 +574,16 @@ function renderEditor() {
                 >
                     + เพิ่มตัวเลือก
                 </button>
+
             `;
 
 
             article
-                .querySelector('.delete')
-                .onclick = () => {
+                .querySelector(
+                    '.delete'
+                )
+                .onclick =
+                () => {
 
                     questions.splice(
                         questionIndex,
@@ -288,8 +595,11 @@ function renderEditor() {
 
 
             article
-                .querySelector('[data-text]')
-                .oninput = e => {
+                .querySelector(
+                    '[data-text]'
+                )
+                .oninput =
+                e => {
 
                     question.text =
                         e.target.value;
@@ -297,74 +607,99 @@ function renderEditor() {
 
 
             article
-                .querySelectorAll('[data-c]')
-                .forEach(input => {
+                .querySelectorAll(
+                    '[data-c]'
+                )
+                .forEach(
+                    input => {
 
-                    input.oninput = e => {
+                        input.oninput =
+                            e => {
 
-                        question.choices[
-                            Number(e.target.dataset.c)
-                        ] = e.target.value;
-                    };
-
-                });
+                                question.choices[
+                                    Number(
+                                        e.target.dataset.c
+                                    )
+                                ] =
+                                    e.target.value;
+                            };
+                    }
+                );
 
 
             article
                 .querySelectorAll(
                     'input[type="radio"]'
                 )
-                .forEach(radio => {
+                .forEach(
+                    radio => {
 
-                    radio.onchange = e => {
+                        radio.onchange =
+                            e => {
 
-                        question.correct =
-                            Number(e.target.value);
-                    };
-
-                });
+                                question.correct =
+                                    Number(
+                                        e.target.value
+                                    );
+                            };
+                    }
+                );
 
 
             article
                 .querySelectorAll(
                     '[data-rm]'
                 )
-                .forEach(button => {
+                .forEach(
+                    button => {
 
-                    button.onclick = () => {
+                        button.onclick =
+                            () => {
 
-                        if (
-                            question.choices.length <= 2
-                        ) {
+                                if (
+                                    question.choices
+                                        .length <= 2
+                                ) {
 
-                            alert(
-                                'ต้องมีอย่างน้อย 2 ตัวเลือก'
-                            );
+                                    alert(
+                                        'ต้องมีอย่างน้อย 2 ตัวเลือก'
+                                    );
 
-                            return;
-                        }
+                                    return;
+                                }
 
-                        question.choices.splice(
-                            Number(button.dataset.rm),
-                            1
-                        );
 
-                        question.correct = 0;
+                                question
+                                    .choices
+                                    .splice(
+                                        Number(
+                                            button.dataset.rm
+                                        ),
+                                        1
+                                    );
 
-                        renderEditor();
-                    };
 
-                });
+                                question.correct =
+                                    0;
+
+
+                                renderEditor();
+                            };
+                    }
+                );
 
 
             article
                 .querySelector(
                     '.add-choice'
                 )
-                .onclick = () => {
+                .onclick =
+                () => {
 
                     if (
-                        question.choices.length >= 6
+                        question
+                            .choices
+                            .length >= 6
                     ) {
 
                         alert(
@@ -374,17 +709,22 @@ function renderEditor() {
                         return;
                     }
 
-                    question.choices.push(
-                        'ตัวเลือกใหม่'
-                    );
+
+                    question
+                        .choices
+                        .push(
+                            'ตัวเลือกใหม่'
+                        );
+
 
                     renderEditor();
                 };
 
 
-            container.appendChild(
-                article
-            );
+            container
+                .appendChild(
+                    article
+                );
         }
     );
 }
@@ -394,66 +734,81 @@ function renderEditor() {
    ADD QUESTION
 ========================================= */
 
-$('#addQuestion').onclick = () => {
+$('#addQuestion').onclick =
+    () => {
 
-    questions.push({
-        text:
-            `คำถามข้อ ${questions.length + 1}`,
+        questions.push({
+            text:
+                `คำถามข้อ ${
+                    questions.length + 1
+                }`,
 
-        choices: [
-            'ตัวเลือก ก',
-            'ตัวเลือก ข',
-            'ตัวเลือก ค',
-            'ตัวเลือก ง'
-        ],
+            choices: [
+                'ตัวเลือก ก',
+                'ตัวเลือก ข',
+                'ตัวเลือก ค',
+                'ตัวเลือก ง'
+            ],
 
-        correct: 0
-    });
+            correct:
+                0
+        });
 
-    renderEditor();
-};
+
+        renderEditor();
+    };
 
 
 /* =========================================
    SAVE EXAM
 ========================================= */
 
-$('#saveExam').onclick = async () => {
+$('#saveExam').onclick =
+    async () => {
 
-    try {
+        try {
 
-        await rpc(
-            'teacher_exam_save',
-            {
-                payload: {
+            await rpc(
+                'teacher_exam_save',
+                {
+                    payload: {
 
-                    title:
-                        $('#title')
-                            .value
-                            .trim(),
+                        title:
+                            $('#title')
+                                .value
+                                .trim(),
 
-                    durationMinutes:
-                        Number(
-                            $('#duration').value
-                        ),
+                        durationMinutes:
+                            Number(
+                                $('#duration')
+                                    .value
+                            ),
 
-                    questions
+                        questions
+                    }
                 }
-            }
-        );
+            );
 
-        msg(
-            'บันทึกชุดข้อสอบแล้ว'
-        );
 
-        await loadExam();
-        await loadControl();
+            msg(
+                'บันทึกชุดข้อสอบแล้ว'
+            );
 
-    } catch (error) {
 
-        msg(error.message);
-    }
-};
+            await loadExam();
+
+            await loadControl();
+
+
+        } catch (
+            error
+        ) {
+
+            msg(
+                error.message
+            );
+        }
+    };
 
 
 /* =========================================
@@ -470,9 +825,15 @@ async function loadControl() {
             );
 
 
-        if (!data) {
+        if (
+            !data
+        ) {
+
+            stopTeacherCountdown();
+
 
             $('#controlBox').innerHTML = `
+
                 <div class="waiting">
 
                     <h2>
@@ -484,7 +845,9 @@ async function loadControl() {
                     </p>
 
                 </div>
+
             `;
+
 
             return;
         }
@@ -497,12 +860,16 @@ async function loadControl() {
 
         const currentPosition =
             Number(
-                data.currentPosition ?? -1
+                data.currentPosition ??
+                -1
             );
 
 
         const next =
             currentPosition + 2;
+
+
+        stopTeacherCountdown();
 
 
         $('#controlBox').innerHTML = `
@@ -512,8 +879,11 @@ async function loadControl() {
                 <div>
 
                     <h2>
-                        ${esc(data.title)}
+                        ${esc(
+                            data.title
+                        )}
                     </h2>
+
 
                     <p class="muted">
 
@@ -522,13 +892,19 @@ async function loadControl() {
                         •
 
                         ${
-                            status === 'none'
+                            status ===
+                            'none'
+
                                 ? 'ยังไม่มีรอบ'
 
-                                : status === 'waiting'
+                                : status ===
+                                  'waiting'
+
                                     ? 'รอเริ่ม'
 
-                                    : status === 'live'
+                                    : status ===
+                                      'live'
+
                                         ? 'กำลังติว'
 
                                         : 'จบแล้ว'
@@ -546,6 +922,7 @@ async function loadControl() {
                         status === 'finished'
 
                             ? `
+
                                 <button
                                     id="startRound"
                                     class="primary"
@@ -553,6 +930,7 @@ async function loadControl() {
                                 >
                                     เริ่มรอบใหม่
                                 </button>
+
                             `
 
                             : ''
@@ -560,9 +938,11 @@ async function loadControl() {
 
 
                     ${
-                        status === 'waiting'
+                        status ===
+                        'waiting'
 
                             ? `
+
                                 <button
                                     id="releaseNext"
                                     class="primary"
@@ -570,6 +950,7 @@ async function loadControl() {
                                 >
                                     ส่งข้อ 1
                                 </button>
+
                             `
 
                             : ''
@@ -577,10 +958,14 @@ async function loadControl() {
 
 
                     ${
-                        status === 'live' &&
-                        next <= data.total
+                        status ===
+                            'live'
+                        &&
+                        next <=
+                            data.total
 
                             ? `
+
                                 <button
                                     id="releaseNext"
                                     class="primary"
@@ -588,6 +973,7 @@ async function loadControl() {
                                 >
                                     ส่งข้อ ${next}
                                 </button>
+
                             `
 
                             : ''
@@ -595,15 +981,18 @@ async function loadControl() {
 
 
                     ${
-                        status === 'live'
+                        status ===
+                        'live'
 
                             ? `
+
                                 <button
                                     id="finishRound"
                                     type="button"
                                 >
                                     จบการติว
                                 </button>
+
                             `
 
                             : ''
@@ -615,9 +1004,52 @@ async function loadControl() {
 
 
             ${
-                status === 'live'
+                status ===
+                'live'
 
                     ? `
+
+                        <div
+                            id="teacherQuestionTimer"
+                            class="question-timer teacher-question-timer"
+                        >
+
+                            <div class="timer-left">
+
+                                <span>
+                                    ⏱ เวลาที่เหลือ
+                                </span>
+
+
+                                <strong
+                                    id="teacherTimerText"
+                                >
+                                    ${formatTeacherTime(
+                                        data.remainingSeconds
+                                    )}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="timer-end">
+
+                                <span>
+                                    หมดเวลา
+                                </span>
+
+
+                                <b
+                                    id="teacherEndTime"
+                                >
+                                    --
+                                </b>
+
+                            </div>
+
+                        </div>
+
+
                         <div class="stats">
 
                             <div class="stat">
@@ -627,7 +1059,9 @@ async function loadControl() {
                                 </span>
 
                                 <b>
-                                    ${currentPosition + 1}
+                                    ${
+                                        currentPosition + 1
+                                    }
                                 </b>
 
                             </div>
@@ -640,7 +1074,11 @@ async function loadControl() {
                                 </span>
 
                                 <b>
-                                    ${data.answeredCount}/${data.studentCount}
+                                    ${
+                                        data.answeredCount
+                                    }/${
+                                        data.studentCount
+                                    }
                                 </b>
 
                             </div>
@@ -653,7 +1091,9 @@ async function loadControl() {
                                 </span>
 
                                 <b>
-                                    ${data.correctCount}
+                                    ${
+                                        data.correctCount
+                                    }
                                 </b>
 
                             </div>
@@ -666,12 +1106,15 @@ async function loadControl() {
                                 </span>
 
                                 <b>
-                                    ${data.wrongCount}
+                                    ${
+                                        data.wrongCount
+                                    }
                                 </b>
 
                             </div>
 
                         </div>
+
                     `
 
                     : ''
@@ -680,9 +1123,57 @@ async function loadControl() {
         `;
 
 
-        /*
-         * START ROUND
-         */
+        /* TIMER */
+
+        if (
+            status === 'live'
+        ) {
+
+            if (
+                data.timeExpired === true
+                ||
+                Number(
+                    data.remainingSeconds
+                ) <= 0
+            ) {
+
+                const timerBox =
+                    $('#teacherQuestionTimer');
+
+                const timerText =
+                    $('#teacherTimerText');
+
+
+                if (
+                    timerText
+                ) {
+
+                    timerText.textContent =
+                        '00:00';
+                }
+
+
+                if (
+                    timerBox
+                ) {
+
+                    timerBox
+                        .classList
+                        .add(
+                            'danger'
+                        );
+                }
+
+            } else {
+
+                startTeacherCountdown(
+                    data.remainingSeconds
+                );
+            }
+        }
+
+
+        /* START ROUND */
 
         $('#startRound')
             ?.addEventListener(
@@ -694,8 +1185,10 @@ async function loadControl() {
                             'เริ่มรอบใหม่โดยใช้ชุดข้อสอบนี้?'
                         )
                     ) {
+
                         return;
                     }
+
 
                     try {
 
@@ -703,20 +1196,25 @@ async function loadControl() {
                             'teacher_round_start'
                         );
 
+
                         await loadControl();
+
                         await loadResults();
 
-                    } catch (error) {
 
-                        msg(error.message);
+                    } catch (
+                        error
+                    ) {
+
+                        msg(
+                            error.message
+                        );
                     }
                 }
             );
 
 
-        /*
-         * RELEASE NEXT
-         */
+        /* RELEASE NEXT */
 
         $('#releaseNext')
             ?.addEventListener(
@@ -729,20 +1227,25 @@ async function loadControl() {
                             'teacher_release_next'
                         );
 
+
                         await loadControl();
+
                         await loadResults();
 
-                    } catch (error) {
 
-                        msg(error.message);
+                    } catch (
+                        error
+                    ) {
+
+                        msg(
+                            error.message
+                        );
                     }
                 }
             );
 
 
-        /*
-         * FINISH
-         */
+        /* FINISH */
 
         $('#finishRound')
             ?.addEventListener(
@@ -754,8 +1257,10 @@ async function loadControl() {
                             'จบการติวตอนนี้?'
                         )
                     ) {
+
                         return;
                     }
+
 
                     try {
 
@@ -763,20 +1268,31 @@ async function loadControl() {
                             'teacher_round_finish'
                         );
 
+
                         await loadControl();
+
                         await loadResults();
 
-                    } catch (error) {
 
-                        msg(error.message);
+                    } catch (
+                        error
+                    ) {
+
+                        msg(
+                            error.message
+                        );
                     }
                 }
             );
 
 
-    } catch (error) {
+    } catch (
+        error
+    ) {
 
-        msg(error.message);
+        msg(
+            error.message
+        );
     }
 }
 
@@ -785,76 +1301,69 @@ async function loadControl() {
    RESULT ANSWER TAG
 ========================================= */
 
-function renderAnswerTag(answer) {
-
-    /*
-     * SQL ใหม่ส่ง status=timeout
-     *
-     * SQL บางเวอร์ชันอาจไม่มี status
-     * แต่ choice เป็น null/undefined
-     *
-     * ทั้งสองกรณีถือว่าไม่ได้ตอบ
-     */
+function renderAnswerTag(
+    answer
+) {
 
     if (
-        answer.status === 'timeout' ||
-        answer.choice === null ||
-        answer.choice === undefined
+        answer.status ===
+            'timeout'
+        ||
+        answer.choice ===
+            null
+        ||
+        answer.choice ===
+            undefined
     ) {
 
         return `
+
             <span
                 class="tag timeout"
                 title="หมดเวลา ข้อนี้ได้ 0 คะแนน"
             >
                 ${answer.question}: ⏰ 0
             </span>
+
         `;
     }
 
 
-    /*
-     * ข้อปัจจุบัน
-     * นักเรียนยังมีเวลาตอบ
-     */
-
     if (
-        answer.status === 'pending'
+        answer.status ===
+        'pending'
     ) {
 
         return `
+
             <span
                 class="tag pending"
                 title="ยังไม่ได้ตอบ"
             >
                 ${answer.question}: รอตอบ
             </span>
+
         `;
     }
 
 
-    /*
-     * ครูยังไม่ได้ปล่อยข้อ
-     */
-
     if (
-        answer.status === 'not_released'
+        answer.status ===
+        'not_released'
     ) {
 
         return `
+
             <span
                 class="tag not-released"
                 title="ครูยังไม่ได้ส่งข้อนี้"
             >
                 ${answer.question}: -
             </span>
+
         `;
     }
 
-
-    /*
-     * มีคำตอบจริง
-     */
 
     const choice =
         Number(
@@ -863,11 +1372,13 @@ function renderAnswerTag(answer) {
 
 
     const choiceLabel =
-        labels[choice] ||
-        '-';
+        labels[
+            choice
+        ] || '-';
 
 
     return `
+
         <span
             class="tag ${
                 answer.correct
@@ -876,8 +1387,13 @@ function renderAnswerTag(answer) {
             }"
         >
             ${answer.question}:${choiceLabel}
-            ${answer.correct ? '✓' : '✕'}
+            ${
+                answer.correct
+                    ? '✓'
+                    : '✕'
+            }
         </span>
+
     `;
 }
 
@@ -897,7 +1413,10 @@ async function loadResults() {
 
 
         const rows =
-            Array.isArray(result)
+            Array.isArray(
+                result
+            )
+
                 ? result
                 : [];
 
@@ -918,157 +1437,186 @@ async function loadResults() {
         ) {
 
             $('#resultRows').innerHTML = `
+
                 <tr>
+
                     <td colspan="6">
                         ยังไม่มีนักเรียน
                     </td>
+
                 </tr>
+
             `;
+
 
             return;
         }
 
 
         $('#resultRows').innerHTML =
-            rows.map(student => {
+            rows.map(
+                student => {
 
 
-                /*
-                 * ANSWERS
-                 */
-
-                const answers =
-                    Array.isArray(
-                        student.answers
-                    )
-                        ? student.answers
-                        : [];
-
-
-                const answersHtml =
-                    answers
-                        .map(
-                            renderAnswerTag
+                    const answers =
+                        Array.isArray(
+                            student.answers
                         )
-                        .join('');
+
+                            ? student.answers
+                            : [];
 
 
-                /*
-                 * ROW
-                 */
+                    const answersHtml =
+                        answers
+                            .map(
+                                renderAnswerTag
+                            )
+                            .join('');
 
-                return `
-                    <tr>
 
-                        <td>
-                            ${esc(
-                                student.studentId
-                            )}
-                        </td>
+                    return `
 
-                        <td>
-                            ${esc(
-                                student.studentName
-                            )}
-                        </td>
+                        <tr>
 
-                        <td>
-                            <b>
-                                ${Number(student.score) || 0}/${Number(student.total) || 0}
-                            </b>
-                        </td>
+                            <td>
+                                ${esc(
+                                    student.studentId
+                                )}
+                            </td>
 
-                        <td>
 
-                            <span
-                                class="status ${
-                                    student.finished
-                                        ? 'done'
-                                        : 'doing'
-                                }"
-                            >
+                            <td>
+                                ${esc(
+                                    student.studentName
+                                )}
+                            </td>
+
+
+                            <td>
+
+                                <b>
+                                    ${
+                                        Number(
+                                            student.score
+                                        ) || 0
+                                    }/${
+                                        Number(
+                                            student.total
+                                        ) || 0
+                                    }
+                                </b>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="status ${
+                                        student.finished
+                                            ? 'done'
+                                            : 'doing'
+                                    }"
+                                >
+                                    ${
+                                        student.finished
+                                            ? 'จบแล้ว'
+                                            : 'กำลังทำ'
+                                    }
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
                                 ${
-                                    student.finished
-                                        ? 'จบแล้ว'
-                                        : 'กำลังทำ'
+                                    answersHtml ||
+                                    '<span class="muted">-</span>'
                                 }
-                            </span>
 
-                        </td>
+                            </td>
 
-                        <td>
-                            ${
-                                answersHtml ||
-                                '<span class="muted">-</span>'
-                            }
-                        </td>
 
-                        <td>
+                            <td>
 
-                            <button
-                                type="button"
-                                class="reset-one danger-btn"
-                                data-id="${student.attemptId}"
-                            >
-                                รีเซ็ต
-                            </button>
+                                <button
+                                    type="button"
+                                    class="reset-one danger-btn"
+                                    data-id="${
+                                        student.attemptId
+                                    }"
+                                >
+                                    รีเซ็ต
+                                </button>
 
-                        </td>
+                            </td>
 
-                    </tr>
-                `;
+                        </tr>
 
-            })
+                    `;
+                }
+            )
             .join('');
 
-
-        /*
-         * RESET รายคน
-         */
 
         document
             .querySelectorAll(
                 '.reset-one'
             )
-            .forEach(button => {
+            .forEach(
+                button => {
 
-                button.onclick =
-                    async () => {
+                    button.onclick =
+                        async () => {
 
-                        if (
-                            !confirm(
-                                'รีเซ็ตคะแนนนักเรียนคนนี้?'
-                            )
-                        ) {
-                            return;
-                        }
+                            if (
+                                !confirm(
+                                    'รีเซ็ตคะแนนนักเรียนคนนี้?'
+                                )
+                            ) {
 
-
-                        try {
-
-                            await rpc(
-                                'teacher_reset_attempt',
-                                {
-                                    p_attempt_id:
-                                        button.dataset.id
-                                }
-                            );
-
-                            await loadResults();
-                            await loadControl();
-
-                        } catch (error) {
-
-                            msg(error.message);
-                        }
-                    };
-
-            });
+                                return;
+                            }
 
 
-    } catch (error) {
+                            try {
 
-        msg(error.message);
+                                await rpc(
+                                    'teacher_reset_attempt',
+                                    {
+                                        p_attempt_id:
+                                            button.dataset.id
+                                    }
+                                );
+
+
+                                await loadResults();
+
+                                await loadControl();
+
+
+                            } catch (
+                                error
+                            ) {
+
+                                msg(
+                                    error.message
+                                );
+                            }
+                        };
+                }
+            );
+
+
+    } catch (
+        error
+    ) {
+
+        msg(
+            error.message
+        );
     }
 }
 
@@ -1082,7 +1630,7 @@ $('#refreshResults').onclick =
 
 
 /* =========================================
-   CLEAR ALL RESULTS
+   CLEAR ALL
 ========================================= */
 
 $('#clearAll').onclick =
@@ -1093,6 +1641,7 @@ $('#clearAll').onclick =
                 'เคลียร์คะแนนและคำตอบนักเรียนทั้งหมดในรอบนี้? การดำเนินการนี้ย้อนกลับไม่ได้'
             )
         ) {
+
             return;
         }
 
@@ -1103,12 +1652,19 @@ $('#clearAll').onclick =
                 'teacher_clear_results'
             );
 
+
             await loadResults();
+
             await loadControl();
 
-        } catch (error) {
 
-            msg(error.message);
+        } catch (
+            error
+        ) {
+
+            msg(
+                error.message
+            );
         }
     };
 
@@ -1121,63 +1677,80 @@ document
     .querySelectorAll(
         '.tab'
     )
-    .forEach(button => {
+    .forEach(
+        button => {
 
-        button.onclick =
-            () => {
+            button.onclick =
+                () => {
 
 
-                document
-                    .querySelectorAll(
-                        '.tab'
-                    )
-                    .forEach(tab => {
+                    document
+                        .querySelectorAll(
+                            '.tab'
+                        )
+                        .forEach(
+                            tab => {
 
-                        tab.classList.toggle(
-                            'active',
-                            tab === button
+                                tab
+                                    .classList
+                                    .toggle(
+                                        'active',
+                                        tab ===
+                                        button
+                                    );
+                            }
                         );
-                    });
 
 
-                [
-                    'control',
-                    'builder',
-                    'results'
-                ]
-                    .forEach(id => {
+                    [
+                        'control',
+                        'builder',
+                        'results'
+                    ]
+                        .forEach(
+                            id => {
 
-                        $('#' + id).hidden =
-                            id !==
-                            button.dataset.tab;
-                    });
+                                $('#' + id)
+                                    .hidden =
+
+                                    id !==
+                                    button.dataset.tab;
+                            }
+                        );
 
 
-                if (
-                    button.dataset.tab ===
-                    'results'
-                ) {
+                    if (
+                        button
+                            .dataset
+                            .tab ===
+                        'results'
+                    ) {
 
-                    loadResults();
-                }
-            };
-    });
+                        loadResults();
+                    }
+                };
+        }
+    );
 
 
 /* =========================================
    MESSAGE
 ========================================= */
 
-function msg(text) {
+function msg(
+    text
+) {
 
-    $('#teacherMsg').textContent =
+    $('#teacherMsg')
+        .textContent =
         text || '';
 
 
     setTimeout(
         () => {
 
-            $('#teacherMsg').textContent =
+            $('#teacherMsg')
+                .textContent =
                 '';
 
         },
@@ -1187,13 +1760,15 @@ function msg(text) {
 
 
 /* =========================================
-   RESTORE LOGIN SESSION
+   RESTORE SESSION
 ========================================= */
 
 S.auth
     .getSession()
     .then(
-        ({ data }) => {
+        ({
+            data
+        }) => {
 
             if (
                 data.session
